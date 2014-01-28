@@ -112,14 +112,15 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
   }
  
-  // Visualize the final result
-  std::cout << "Best transform: " << std::endl << final_transform << std::endl;
+  std::cout << "Best transform: " << std::endl << final_transform * transform << std::endl;
   pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
+
+  // Visualize the final result
   pcl::visualization::PCLVisualizer viewer("Result");
   pcl::visualization::PointCloudColorHandlerCustom<PointType> scene_color_handler(scene.getCloudPtr(), 255, 255, 255);
-  viewer.addPointCloud(scene.getCloudPtr(), scene_color_handler , "scene");
+  viewer.addPointCloud(scene.getCloudPtr(), scene_color_handler, "scene");
   pcl::visualization::PointCloudColorHandlerCustom<PointType> final_cloud_color_handler(final_cloud, 255, 0, 0);
-  viewer.addPointCloud(final_cloud, final_cloud_color_handler , "final");
+  viewer.addPointCloud(final_cloud, final_cloud_color_handler, "final");
   viewer.spin(); 
 
   return 0;
