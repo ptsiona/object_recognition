@@ -14,4 +14,6 @@
 
 #include <vector>
 
-void segmentCloud(pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud, std::vector< pcl::PointCloud<pcl::PointXYZ>::Ptr > &dst_clouds);
+#include "typedefs.h"
+
+void segmentCloud(pcl::PointCloud<PointType>::Ptr &src_cloud, std::vector< pcl::PointCloud<PointType>::Ptr > &dst_clouds);

@@ -65,8 +65,8 @@ pcl::PointCloud<DescriptorType>::Ptr PCLHighLevelCtl::computeFPFHDescriptors(flo
   return descriptors;
 }
 
-std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PCLHighLevelCtl::segment() {
-  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> clusters;
+std::vector<pcl::PointCloud<PointType>::Ptr> PCLHighLevelCtl::segment() {
+  std::vector<pcl::PointCloud<PointType>::Ptr> clusters;
   segmentCloud(this->cloud, clusters);
 	
   return clusters;
@@ -74,5 +74,26 @@ std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PCLHighLevelCtl::segment() {
 
 pcl::PointCloud<PointType>::Ptr PCLHighLevelCtl::getCloudPtr() {
   return this->cloud;
+}
+
+PointRGB PCLHighLevelCtl::averageRGB() {
+	PointRGB average(0, 0, 0);
+	int considered_points = 0;
+	
+	for(int i = 0; i < (this->cloud)->size(); i++) {
+		if(((this->cloud)->points[i].r == 0 && (this->cloud)->points[i].g == 0 && (this->cloud)->points[i].b == 0) || (this->cloud)->points[i].z == 0)
+			continue;
+		
+		average.r += (this->cloud)->points[i].r;
+		average.g += (this->cloud)->points[i].g;
+		average.b += (this->cloud)->points[i].b;
+		considered_points++;
+	}
+	
+	average.r = average.r/considered_points;
+	average.g = average.g/considered_points;
+	average.b = average.b/considered_points;
+
+	return average;
 }
 

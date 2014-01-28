@@ -110,19 +110,19 @@ Eigen::Matrix4f Recognizer::aligner(pcl::CorrespondencesPtr corrs, pcl::PointClo
       pcl::PointCloud<PointType>::Ptr scoring_biggest, scoring_smallest;
       //Select the biggest cloud
       if(target_keypoints->size() < registered_source->size()) {
-	scoring_biggest = registered_source;
-	scoring_smallest = target_keypoints;
+				scoring_biggest = registered_source;
+				scoring_smallest = target_keypoints;
       }
       else {
-	scoring_biggest = target_keypoints;
-	scoring_smallest = registered_source;
+				scoring_biggest = target_keypoints;
+				scoring_smallest = registered_source;
       }
 			
       float score = this->getFitnessScore(scoring_smallest, scoring_biggest);
 			
       if(score < f_min) {
-	f_min = score;
-	best_transform = icp.getFinalTransformation()*rototranslations[i];
+				f_min = score;
+				best_transform = icp.getFinalTransformation()*rototranslations[i];
       }
     }
   }

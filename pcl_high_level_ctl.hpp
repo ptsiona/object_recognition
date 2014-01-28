@@ -15,7 +15,7 @@
 
 #include "segmentation.h"
 #include "typedefs.h"
-                   
+
 class PCLHighLevelCtl {
 	private:
 		pcl::PointCloud<PointType>::Ptr cloud;
@@ -32,5 +32,6 @@ class PCLHighLevelCtl {
 		pcl::PointCloud<DescriptorType>::Ptr computeFPFHDescriptors(float radius_search=0.01f);
 		std::vector<pcl::PointCloud<PointType>::Ptr> segment();
 		pcl::PointCloud<PointType>::Ptr getCloudPtr();
+		PointRGB averageRGB();
 };
 
