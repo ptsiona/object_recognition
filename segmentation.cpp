@@ -7,8 +7,8 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   for(int i = 0; i < src_cloud->size(); ++i) {
-  	if(src_cloud->points[i].z < 1.5f && src_cloud->points[i].z > 0.5f && src_cloud->points[i].y < 2.0f && src_cloud->points[i].y > -2.0f && src_cloud->points[i].x < 2.0f && src_cloud->points[i].x > -2.0f)
-  		cropped->push_back(src_cloud->points[i]);
+    if(src_cloud->points[i].z < 1.5f && src_cloud->points[i].z > 0.5f && src_cloud->points[i].y < 2.0f && src_cloud->points[i].y > -2.0f && src_cloud->points[i].x < 2.0f && src_cloud->points[i].x > -2.0f)
+      cropped->push_back(src_cloud->points[i]);
   }
   
   pcl::VoxelGrid<pcl::PointXYZ> vg;
@@ -16,7 +16,6 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   vg.setInputCloud (cropped);
   vg.setLeafSize (0.001f, 0.001f, 0.001f);
   vg.filter (*cloud_filtered);
-  std::cout << "PointCloud after filtering has: " << cloud_filtered->points.size ()  << " data points." << std::endl; //*
 
   // Create the segmentation object for the planar model and set all the parameters
   pcl::SACSegmentation<pcl::PointXYZ> seg;
@@ -31,14 +30,11 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   seg.setDistanceThreshold (0.01);
 
   int i=0, nr_points = (int) cloud_filtered->points.size ();
-  while (cloud_filtered->points.size () > 0.3 * nr_points)
-  {
+  while(cloud_filtered->points.size () > 0.3 * nr_points) {
     // Segment the largest planar component from the remaining cloud
     seg.setInputCloud (cloud_filtered);
     seg.segment (*inliers, *coefficients);
-    if (inliers->indices.size () == 0)
-    {
-      std::cout << "Could not estimate a planar model for the given dataset." << std::endl;
+    if(inliers->indices.size () == 0) {
       break;
     }
 
@@ -50,8 +46,7 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
 
     // Get the points associated with the planar surface
     extract.filter (*cloud_plane);
-    std::cout << "PointCloud representing the planar component: " << cloud_plane->points.size () << " data points." << std::endl;
-
+    
     // Remove the planar inliers, extract the rest
     extract.setNegative (true);
     extract.filter (*cloud_f);
@@ -72,10 +67,9 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   ec.extract (cluster_indices);
   
   dst_clouds.clear();
-  for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
-  {
+  for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
-    for (std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
+    for(std::vector<int>::const_iterator pit = it->indices.begin (); pit != it->indices.end (); pit++)
       cloud_cluster->points.push_back (cloud_filtered->points[*pit]); //*
     cloud_cluster->width = cloud_cluster->points.size ();
     cloud_cluster->height = 1;

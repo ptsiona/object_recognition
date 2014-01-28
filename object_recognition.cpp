@@ -11,14 +11,22 @@
 bool readDataFileRow(std::string &name, Eigen::Isometry3f &transform, std::ifstream &is);
 
 int main(int argc, char **argv) {
+  if(argc == 1) {
+    std::cout << "Usage example: " << std::endl;
+    std::cout << "object_recognition --step 1 --dataFile data.txt --scene cloud.pcd" << std::endl;
+    std::cout << "\t--step: specify how many model views to skip at each iteration" << std::endl;
+    std::cout << "\t--dataFile: specify the filename where the program can find model views information" << std::endl;
+    std::cout << "\t--scene: specify the .pcd point cloud where the model has to be identified" << std::endl;
+    return 0;
+  }
+
   // Input handling
   int step = 1;
   std::string dataFile = "data.txt";
-  std::string sceneFile = "";
+  std::string sceneFile = "";  
   pcl::console::parse_argument(argc, argv, "--step", step);
   pcl::console::parse_argument(argc, argv, "--dataFile", dataFile);
   pcl::console::parse_argument(argc, argv, "--scene", sceneFile);
-  pcl::visualization::PCLVisualizer viewer("Normals");
   
   std::ifstream isDataFile(dataFile.c_str());
   if(!isDataFile) {
@@ -46,8 +54,7 @@ int main(int argc, char **argv) {
       continue;
     }
     
-    std::cout << "****************************************************************" << std::endl;
-    std::cout << "Processing data with prefix " << namePrefix << " and transform: " << std::endl 
+    std::cout << "Processing view with prefix " << namePrefix << " and camera transform: " << std::endl 
 	      << transform.matrix() << std::endl;
 
     // Load PCD files
@@ -55,63 +62,49 @@ int main(int argc, char **argv) {
     scene = new PCLHighLevelCtl(sceneFile);
     model = new PCLHighLevelCtl(namePrefix + ".pcd", transform);
     
-    std::cout << "Model initial processing" << std::endl;
     pcl::PointCloud<PointType>::Ptr model_cloud = model->getCloudPtr();
     // Compute model normals
     pcl::PointCloud<NormalType>::Ptr model_normals = model->computeNormals();
-    viewer.addPointCloudNormals<PointType, NormalType>(model_cloud, model_normals, 50, 0.02, "normals");
+
     // Compute model keypoints
     pcl::PointCloud<PointType>::Ptr model_keypoints = model->keypointsExtraction();
 
-    std::cout << "Model segmentation" << std::endl;
     // Compute scene clusters
     std::vector<pcl::PointCloud<PointType>::Ptr> scene_clusters = scene->segment();
     		
-    std::cout << "Starting loop over " << scene_clusters.size() << " clusters..." << std::endl;
     // Iterate over clusters
-    int j = 0, k = 0;
-    
-    for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i, ++k) {
-    	std::stringstream ss;
-    	ss << "class_" << k << ".pcd";
-    	pcl::io::savePCDFileASCII(ss.str(), **i);
-    }
-    
-    for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i, ++j) {
-    	std::cout << "Processing cluster " << j << std::endl;
-    	// Compute cluster normals and keypoints
-    	cluster = new PCLHighLevelCtl(*i);
-    	pcl::PointCloud<NormalType>::Ptr cluster_normals = cluster->computeNormals();
-    	pcl::PointCloud<PointType>::Ptr cluster_keypoints = cluster->keypointsExtraction();
+    for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i) {
+      // Compute cluster normals and keypoints
+      cluster = new PCLHighLevelCtl(*i);
+      pcl::PointCloud<NormalType>::Ptr cluster_normals = cluster->computeNormals();
+      pcl::PointCloud<PointType>::Ptr cluster_keypoints = cluster->keypointsExtraction();
 	
-	viewer.addPointCloudNormals<PointType, NormalType>(*i, cluster_normals, 50, 0.02, "normals2");
-    	//viewer.spinOnce(2000);
-    	viewer.removePointCloud("normals2");
-    	int a;
-    	//std::cin >> a;
-    	//Recognizer initialization
-    	Recognizer* rec = new Recognizer();
+      //Recognizer initialization
+      Recognizer* rec = new Recognizer();
     	
-    	std::cout << "Starting recognition" << std::endl;
-    	// Parameter's search
-    	for(float search_radius = 0.01; search_radius < 0.03; search_radius += 0.005) {
-    		// Compute FPFH descriptors
-		pcl::PointCloud<DescriptorType>::Ptr model_descriptors = model->computeFPFHDescriptors(search_radius);
-    		pcl::PointCloud<DescriptorType>::Ptr cluster_descriptors = cluster->computeFPFHDescriptors(search_radius);
+      // Parameter's search
+      for(float search_radius = 0.01; search_radius < 0.03; search_radius += 0.005) {
+	// Compute FPFH descriptors
+	pcl::PointCloud<DescriptorType>::Ptr model_descriptors = model->computeFPFHDescriptors(search_radius);
+	pcl::PointCloud<DescriptorType>::Ptr cluster_descriptors = cluster->computeFPFHDescriptors(search_radius);
  
-    		rec->flann_matcher(model_descriptors, cluster_descriptors);
-    		Eigen::Matrix4f transform = rec->aligner(model_keypoints, cluster_keypoints);
+	rec->flann_matcher(model_descriptors, cluster_descriptors);
+	Eigen::Matrix4f transform = rec->aligner(model_keypoints, cluster_keypoints);
 
-    		if(rec->getLastScore() < best_score) {
-    			best_score = rec->getLastScore();
-			std::cout << "Found better score: " << best_score << std::endl;
-    			final_transform = transform;
-    			final_cloud = model->getCloudPtr();
-    		}
-    	}
+	if(rec->getLastScore() < best_score) {
+	  best_score = rec->getLastScore();
+	  std::cerr << "x";
+	  final_transform = transform;
+	  final_cloud = model->getCloudPtr();
+	}
+	else
+	  std::cerr << ".";
+      }
     }
+    std::cout << std::endl;
   }
   
+  std::cout << "Best transform: " << std::endl << final_transform << std::endl;
   pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
   pcl::io::savePCDFileASCII("result.pcd", *final_cloud);
  

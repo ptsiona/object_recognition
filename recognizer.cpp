@@ -1,7 +1,11 @@
 #include "recognizer.hpp"
 
+Recognizer::Recognizer() { 
+  corrs = pcl::CorrespondencesPtr(new pcl::Correspondences());
+}
+
 void Recognizer::setGcSize(float gc_size) {
-	this->gc_size = gc_size;
+  this->gc_size = gc_size;
 }
 
 double Recognizer::getFitnessScore(pcl::PointCloud<PointType>::Ptr target_cloud, pcl::PointCloud<PointType>::Ptr input_transformed) {
@@ -51,101 +55,88 @@ double Recognizer::getFitnessScore(pcl::PointCloud<PointType>::Ptr target_cloud,
 }
 
 pcl::CorrespondencesPtr Recognizer::flann_matcher(pcl::PointCloud<DescriptorType>::Ptr input_descriptors, pcl::PointCloud<DescriptorType>::Ptr target_descriptors, float match_thresh) {
-	pcl::KdTreeFLANN<DescriptorType> match_search;
-	match_search.setInputCloud(input_descriptors);
+  pcl::KdTreeFLANN<DescriptorType> match_search;
+  match_search.setInputCloud(input_descriptors);
 	
-	for(size_t i = 0; i < target_descriptors->size (); ++i) {
-		std::vector<int> neigh_indices (1);
-		std::vector<float> neigh_sqr_dists (1);
+  for(size_t i = 0; i < target_descriptors->size (); ++i) {
+    std::vector<int> neigh_indices (1);
+    std::vector<float> neigh_sqr_dists (1);
  
-		for (int j = 0; j < 33; j++) { // for each bin
-			if(pcl_isnan(target_descriptors->at(i).histogram[j]) || !pcl_isfinite(target_descriptors->at(i).histogram[j]))
-				continue;
-		}
+    for (int j = 0; j < 33; j++) { // for each bin
+      if(pcl_isnan(target_descriptors->at(i).histogram[j]) || !pcl_isfinite(target_descriptors->at(i).histogram[j]))
+	continue;
+    }
 
-		int found_neighs = match_search.nearestKSearch(target_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
+    int found_neighs = match_search.nearestKSearch(target_descriptors->at(i), 1, neigh_indices, neigh_sqr_dists);
 
-		if(found_neighs == 1 && neigh_sqr_dists[0] < match_thresh) { // add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
-			pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
-			(this->corrs)->push_back(corr);
-		}
-	}
+    if(found_neighs == 1 && neigh_sqr_dists[0] < match_thresh) { // add match only if the squared descriptor distance is less than 0.25 (SHOT descriptor distances are between 0 and 1 by design)
+      pcl::Correspondence corr (neigh_indices[0], static_cast<int> (i), neigh_sqr_dists[0]);
+      (this->corrs)->push_back(corr);
+    }
+  }
 	
-	return this->corrs;
+  return this->corrs;
 }
 
 Eigen::Matrix4f Recognizer::aligner(pcl::CorrespondencesPtr corrs, pcl::PointCloud<PointType>::Ptr source_keypoints, pcl::PointCloud<PointType>::Ptr target_keypoints, float cg_thresh) {
-	pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
-	std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
-	std::vector<pcl::Correspondences> clustered_corrs;
-	Eigen::Matrix4f best_transform = Eigen::Matrix4f::Identity();
-	float f_min = std::numeric_limits<float>::max();
+  pcl::GeometricConsistencyGrouping<PointType, PointType> gc_clusterer;
+  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f> > rototranslations;
+  std::vector<pcl::Correspondences> clustered_corrs;
+  Eigen::Matrix4f best_transform = Eigen::Matrix4f::Identity();
+  float f_min = std::numeric_limits<float>::max();
 	
-	for(float cg_size = 0.01f; cg_size < 0.03; cg_size += 0.005f) {
-		gc_clusterer.setGCSize(cg_size);
-		gc_clusterer.setGCThreshold(cg_thresh);
-		gc_clusterer.setInputCloud(source_keypoints);
-		gc_clusterer.setSceneCloud(target_keypoints);
-		gc_clusterer.setModelSceneCorrespondences(corrs);
-		gc_clusterer.recognize(rototranslations, clustered_corrs);
+  for(float cg_size = 0.01f; cg_size < 0.03; cg_size += 0.005f) {
+    gc_clusterer.setGCSize(cg_size);
+    gc_clusterer.setGCThreshold(cg_thresh);
+    gc_clusterer.setInputCloud(source_keypoints);
+    gc_clusterer.setSceneCloud(target_keypoints);
+    gc_clusterer.setModelSceneCorrespondences(corrs);
+    gc_clusterer.recognize(rototranslations, clustered_corrs);
 		
-		for(size_t i = 0; i < rototranslations.size(); ++i) {
-			pcl::PointCloud<PointType>::Ptr rotated_source(new pcl::PointCloud<PointType>()), registered_source(new pcl::PointCloud<PointType>());
-			pcl::transformPointCloud(*source_keypoints, *rotated_source, rototranslations[i]);
-			//pcl::visualization::PointCloudColorHandlerCustom<PointType> rotated_source_color_handler_gc(rotated_source, 0, 255, 0);
-			//viewer->addPointCloud(rotated_source, rotated_source_color_handler_gc, "rotated_source");
-			viewer->addPointCloud(target_keypoints, std::string("target"));
-
-			pcl::IterativeClosestPoint<PointType,PointType> icp;
- 
-			icp.setInputSource(rotated_source);
-			icp.setInputTarget(target_keypoints);
-			icp.setTransformationEpsilon(1e-10);
-			icp.setMaxCorrespondenceDistance(0.05);
-			icp.setMaximumIterations(100);
-
-			icp.setEuclideanFitnessEpsilon(0.05);
-			icp.align(*registered_source);
+    for(size_t i = 0; i < rototranslations.size(); ++i) {
+      pcl::PointCloud<PointType>::Ptr rotated_source(new pcl::PointCloud<PointType>()), registered_source(new pcl::PointCloud<PointType>());
+      pcl::transformPointCloud(*source_keypoints, *rotated_source, rototranslations[i]);
 			
-			pcl::PointCloud<PointType>::Ptr scoring_biggest, scoring_smallest;
-			//Select the biggest cloud
-			if(target_keypoints->size() < registered_source->size()) {
-				scoring_biggest = registered_source;
-				scoring_smallest = target_keypoints;
-			}
-			else {
-				scoring_biggest = target_keypoints;
-				scoring_smallest = registered_source;
-			}
-			
-			float score = this->getFitnessScore(scoring_smallest, scoring_biggest);
-			
-			if(score < f_min) {
-				f_min = score;
-				best_transform = icp.getFinalTransformation()*rototranslations[i];
+      pcl::IterativeClosestPoint<PointType,PointType> icp; 
+      icp.setInputSource(rotated_source);
+      icp.setInputTarget(target_keypoints);
+      icp.setTransformationEpsilon(1e-10);
+      icp.setMaxCorrespondenceDistance(0.05);
+      icp.setMaximumIterations(100);
 
-				pcl::visualization::PointCloudColorHandlerCustom<PointType> registered_source_color_handler(registered_source, 255, 0, 0);
-				pcl::transformPointCloud(*source_keypoints, *registered_source, best_transform);
-				viewer->addPointCloud(registered_source, registered_source_color_handler, "registered_source");
-				viewer->spinOnce(2000);
-				viewer->removePointCloud("registered_source");
-			}
+      icp.setEuclideanFitnessEpsilon(0.05);
+      icp.align(*registered_source);
 			
-			viewer->removePointCloud("target");
-			//viewer->removePointCloud("rotated_source");
-		}
-	}
+      pcl::PointCloud<PointType>::Ptr scoring_biggest, scoring_smallest;
+      //Select the biggest cloud
+      if(target_keypoints->size() < registered_source->size()) {
+	scoring_biggest = registered_source;
+	scoring_smallest = target_keypoints;
+      }
+      else {
+	scoring_biggest = target_keypoints;
+	scoring_smallest = registered_source;
+      }
+			
+      float score = this->getFitnessScore(scoring_smallest, scoring_biggest);
+			
+      if(score < f_min) {
+	f_min = score;
+	best_transform = icp.getFinalTransformation()*rototranslations[i];
+      }
+    }
+  }
 
-	this->last_score = f_min;
-	return best_transform;
+  this->last_score = f_min;
+  return best_transform;
 }
 
 Eigen::Matrix4f Recognizer::aligner(pcl::PointCloud<PointType>::Ptr source_keypoints, pcl::PointCloud<PointType>::Ptr target_keypoints, float cg_thresh) {
-	return this->aligner(this->corrs, source_keypoints, target_keypoints, cg_thresh);
+  return this->aligner(this->corrs, source_keypoints, target_keypoints, cg_thresh);
 }
 
 float Recognizer::getLastScore() {
-	return this->last_score;
+  return this->last_score;
 }
 
 
