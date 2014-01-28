@@ -7,7 +7,7 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   for(int i = 0; i < src_cloud->size(); ++i) {
-    if(src_cloud->points[i].z < 0.9f && src_cloud->points[i].z > 0.5f && src_cloud->points[i].y < 2.0f && src_cloud->points[i].y > -2.0f && src_cloud->points[i].x < 2.0f && src_cloud->points[i].x > -2.0f)
+    if(src_cloud->points[i].z < 1.5f && src_cloud->points[i].z > 0.75f && src_cloud->points[i].y < 1.0f && src_cloud->points[i].y > -1.0f && src_cloud->points[i].x < 1.0f && src_cloud->points[i].x > -1.0f)
       cropped->push_back(src_cloud->points[i]);
   }
   
@@ -60,8 +60,8 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance (0.01); // 2cm
-  ec.setMinClusterSize (400);
-  ec.setMaxClusterSize (25000);
+  ec.setMinClusterSize (20);
+  ec.setMaxClusterSize (2500);
   ec.setSearchMethod (tree);
   ec.setInputCloud (cloud_filtered);
   ec.extract (cluster_indices);

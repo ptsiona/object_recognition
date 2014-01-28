@@ -41,7 +41,24 @@ int main(int argc, char **argv) {
   Eigen::Matrix4f final_transform = Eigen::Matrix4f::Identity();
   pcl::PointCloud<PointType>::Ptr final_cloud(new pcl::PointCloud<PointType>());
   PCLHighLevelCtl scene(sceneFile);
+  // Compute scene segmentation and clusterization by using pcl functions SACSegmentation and 
+  // EuclideanClusterExtraction
+  std::vector<pcl::PointCloud<PointType>::Ptr> scene_clusters = scene.segment();
 
+  // Show clusters
+  pcl::visualization::PCLVisualizer viewer("Result");
+  int z = 0;
+  std::cout << "Num. clusters: " << scene_clusters.size() << std::endl;
+  pcl::visualization::PointCloudColorHandlerCustom<PointType> scene_color_handler(scene.getCloudPtr(), 255, 255, 255);
+  viewer.addPointCloud(scene.getCloudPtr(), scene_color_handler, "scene");
+  for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i, ++z) {
+    pcl::PointCloud<pcl::PointXYZ>::Ptr &scene_cluster = *i;
+    std::stringstream scene_cluster_str;
+    scene_cluster_str << "scene_cloud" << z;
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> color_handler(scene_cluster, rand() % 256, rand() % 256, rand() % 256);
+    viewer.addPointCloud(scene_cluster, color_handler, scene_cluster_str.str());
+  } 
+  
   // Cycle over the model views
   Eigen::Matrix4f camera_transform = Eigen::Matrix4f::Identity();
   while(isDataFile.good()) {
@@ -67,10 +84,6 @@ int main(int argc, char **argv) {
 
     // Compute model keypoints by using pcl function uniform_sampling
     pcl::PointCloud<PointType>::Ptr model_keypoints = model.keypointsExtraction();
-
-    // Compute scene segmentation and clusterization by using pcl functions SACSegmentation and 
-    // EuclideanClusterExtraction
-    std::vector<pcl::PointCloud<PointType>::Ptr> scene_clusters = scene.segment();
     		
     // Iterate over clusters
     for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i) {
@@ -118,9 +131,6 @@ int main(int argc, char **argv) {
   pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
 
   // Visualize the final result
-  pcl::visualization::PCLVisualizer viewer("Result");
-  pcl::visualization::PointCloudColorHandlerCustom<PointType> scene_color_handler(scene.getCloudPtr(), 255, 255, 255);
-  viewer.addPointCloud(scene.getCloudPtr(), scene_color_handler, "scene");
   pcl::visualization::PointCloudColorHandlerCustom<PointType> final_cloud_color_handler(final_cloud, 255, 0, 0);
   viewer.addPointCloud(final_cloud, final_cloud_color_handler, "final");
   viewer.spin(); 
