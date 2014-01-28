@@ -7,7 +7,7 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   
   // Create the filtering object: downsample the dataset using a leaf size of 1cm
   for(int i = 0; i < src_cloud->size(); ++i) {
-    if(src_cloud->points[i].z < 1.5f && src_cloud->points[i].z > 0.5f && src_cloud->points[i].y < 2.0f && src_cloud->points[i].y > -2.0f && src_cloud->points[i].x < 2.0f && src_cloud->points[i].x > -2.0f)
+    if(src_cloud->points[i].z < 0.9f && src_cloud->points[i].z > 0.5f && src_cloud->points[i].y < 2.0f && src_cloud->points[i].y > -2.0f && src_cloud->points[i].x < 2.0f && src_cloud->points[i].x > -2.0f)
       cropped->push_back(src_cloud->points[i]);
   }
   
