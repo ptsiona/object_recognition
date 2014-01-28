@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
   PCLHighLevelCtl scene(sceneFile);
 
   // Cycle over the model views
+  Eigen::Matrix4f camera_transform = Eigen::Matrix4f::Identity();
   while(isDataFile.good()) {
     // Get current model view 
     std::string namePrefix = "";
@@ -93,14 +94,15 @@ int main(int argc, char **argv) {
 	// Compute alignment between the model view and the current cluster by using pcl 
 	// function IterativeClosestPoint with initial guess found by using an other pcl function 
 	// GeometricConsistencyGrouping
-	Eigen::Matrix4f transform = rec.aligner(model_keypoints, cluster_keypoints);
+	Eigen::Matrix4f relative_transform = rec.aligner(model_keypoints, cluster_keypoints);
 
 	// Compute a score for the current transformation found with a custom scoring function, if the current
 	// transformation is better than the previous best one update it
 	if(rec.getLastScore() < best_score) {
+	  camera_transform = transform.matrix();
 	  best_score = rec.getLastScore();
 	  std::cout << "x";
-	  final_transform = transform;
+	  final_transform = relative_transform;
 	  final_cloud = model.getCloudPtr();
 	}
 	else {
@@ -112,7 +114,7 @@ int main(int argc, char **argv) {
     std::cout << std::endl;
   }
  
-  std::cout << "Best transform: " << std::endl << final_transform * transform << std::endl;
+  std::cout << "Best transform: " << std::endl << (final_transform * camera_transform) << std::endl;
   pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
 
   // Visualize the final result
