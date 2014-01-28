@@ -60,7 +60,7 @@ void segmentCloud( pcl::PointCloud<pcl::PointXYZ>::Ptr &src_cloud,
   std::vector<pcl::PointIndices> cluster_indices;
   pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
   ec.setClusterTolerance (0.01); // 2cm
-  ec.setMinClusterSize (20);
+  ec.setMinClusterSize (400);
   ec.setMaxClusterSize (25000);
   ec.setSearchMethod (tree);
   ec.setInputCloud (cloud_filtered);
