@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     model.computeNormals();
     
     // Compute model RGB average
-		PointRGB model_avg = model.averageRGB();
+    PointRGB model_avg = model.averageRGB();
 
     // Compute model keypoints by using pcl function uniform_sampling
     pcl::PointCloud<PointType>::Ptr model_keypoints = model.keypointsExtraction();
@@ -92,17 +92,17 @@ int main(int argc, char **argv) {
     for(std::vector<pcl::PointCloud<PointType>::Ptr>::iterator i = scene_clusters.begin(); i != scene_clusters.end(); ++i) {
       PCLHighLevelCtl cluster(*i);
 		        		
-		  // Compute cluster RGB average
-		  PointRGB cluster_avg = cluster.averageRGB();
+      // Compute cluster RGB average
+      PointRGB cluster_avg = cluster.averageRGB();
 		  
-		  // If color average doesn't match, skip the cluster
-		  if(abs(model_avg.r - cluster_avg.r) > 25 || abs(model_avg.g - cluster_avg.g) > 25 || abs(model_avg.b - cluster_avg.b) > 25)
-		  	continue; 
+      // If color average doesn't match, skip the cluster
+      if(abs(model_avg.r - cluster_avg.r) > 25 || abs(model_avg.g - cluster_avg.g) > 25 || abs(model_avg.b - cluster_avg.b) > 25)
+	continue; 
 		  	
-		 	//std::cout << "model_avg " << model_avg.r << " " << model_avg.g << " " << model_avg.b << std::endl;
-		 	//std::cout << "cluster_avg " << cluster_avg.r << " " << cluster_avg.g << " " << cluster_avg.b << std::endl;
+      //std::cout << "model_avg " << model_avg.r << " " << model_avg.g << " " << model_avg.b << std::endl;
+      //std::cout << "cluster_avg " << cluster_avg.r << " " << cluster_avg.g << " " << cluster_avg.b << std::endl;
     	
-    	// Compute cluster normals and keypoints
+      // Compute cluster normals and keypoints
       cluster.computeNormals();
       pcl::PointCloud<PointType>::Ptr cluster_keypoints = cluster.keypointsExtraction();
 	
@@ -111,31 +111,31 @@ int main(int argc, char **argv) {
     	
       // Parameter search
       for(float search_radius = 0.01; search_radius < 0.03; search_radius += 0.005) {
-				// Compute FPFH descriptors for the cluster and the model by using pcl function FPFHEstimationOMP
-				pcl::PointCloud<DescriptorType>::Ptr model_descriptors = model.computeFPFHDescriptors(search_radius);
-				pcl::PointCloud<DescriptorType>::Ptr cluster_descriptors = cluster.computeFPFHDescriptors(search_radius);
+	// Compute FPFH descriptors for the cluster and the model by using pcl function FPFHEstimationOMP
+	pcl::PointCloud<DescriptorType>::Ptr model_descriptors = model.computeFPFHDescriptors(search_radius);
+	pcl::PointCloud<DescriptorType>::Ptr cluster_descriptors = cluster.computeFPFHDescriptors(search_radius);
 			 
-				// Compute correspondences between the computed descriptors by using pcl function KdTreeFLANN
-				rec.flann_matcher(model_descriptors, cluster_descriptors);
+	// Compute correspondences between the computed descriptors by using pcl function KdTreeFLANN
+	rec.flann_matcher(model_descriptors, cluster_descriptors);
 	
-				// Compute alignment between the model view and the current cluster by using pcl 
-				// function IterativeClosestPoint with initial guess found by using an other pcl function 
-				// GeometricConsistencyGrouping
-				Eigen::Matrix4f relative_transform = rec.aligner(model_keypoints, cluster_keypoints);
+	// Compute alignment between the model view and the current cluster by using pcl 
+	// function IterativeClosestPoint with initial guess found by using an other pcl function 
+	// GeometricConsistencyGrouping
+	Eigen::Matrix4f relative_transform = rec.aligner(model_keypoints, cluster_keypoints);
 
-				// Compute a score for the current transformation found with a custom scoring function, if the current
-				// transformation is better than the previous best one update it
-				if(rec.getLastScore() < best_score) {
-					camera_transform = transform.matrix();
-					best_score = rec.getLastScore();
-					std::cout << "x";
-					final_transform = relative_transform;
-					final_cloud = model.getCloudPtr();
-				}
-				else {
-					std::cout << ".";
-				}
-				std::cout.flush();
+	// Compute a score for the current transformation found with a custom scoring function, if the current
+	// transformation is better than the previous best one update it
+	if(rec.getLastScore() < best_score) {
+	  camera_transform = transform.matrix();
+	  best_score = rec.getLastScore();
+	  std::cout << "x";
+	  final_transform = relative_transform;
+	  final_cloud = model.getCloudPtr();
+	}
+	else {
+	  std::cout << ".";
+	}
+	std::cout.flush();
       }
     }
     
@@ -143,12 +143,12 @@ int main(int argc, char **argv) {
   }
  
   if(final_transform == Eigen::Matrix4f::Identity()) {
-  	std::cout << "The searched object could not be found." << std::endl;
+    std::cout << "The searched object could not be found." << std::endl;
   }
   else {
-		std::cout << "Object found! Best transform: " << std::endl << (final_transform * camera_transform) << std::endl;
-		pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
-	}
+    std::cout << "Object found! Best transform: " << std::endl << (final_transform * camera_transform) * camera_transform << std::endl;
+    pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
+  }
 	
   // Visualize the final result
   pcl::visualization::PointCloudColorHandlerCustom<PointType> final_cloud_color_handler(final_cloud, 255, 0, 0);
