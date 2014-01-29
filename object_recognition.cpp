@@ -96,8 +96,11 @@ int main(int argc, char **argv) {
 		  PointRGB cluster_avg = cluster.averageRGB();
 		  
 		  // If color average doesn't match, skip the cluster
-		  if(abs(model_avg.r - cluster_avg.r) > 30 || abs(model_avg.g - cluster_avg.g) > 30 || abs(model_avg.b - cluster_avg.b) > 30)
+		  if(abs(model_avg.r - cluster_avg.r) > 25 || abs(model_avg.g - cluster_avg.g) > 25 || abs(model_avg.b - cluster_avg.b) > 25)
 		  	continue; 
+		  	
+		 	//std::cout << "model_avg " << model_avg.r << " " << model_avg.g << " " << model_avg.b << std::endl;
+		 	//std::cout << "cluster_avg " << cluster_avg.r << " " << cluster_avg.g << " " << cluster_avg.b << std::endl;
     	
     	// Compute cluster normals and keypoints
       cluster.computeNormals();
@@ -140,11 +143,10 @@ int main(int argc, char **argv) {
   }
  
   if(final_transform == Eigen::Matrix4f::Identity()) {
-  	std::cout << "The model could not be aligned" << std::endl;
-  	return 0;
+  	std::cout << "The searched object could not be found." << std::endl;
   }
   else {
-		std::cout << "Best transform: " << std::endl << (final_transform * camera_transform) << std::endl;
+		std::cout << "Object found! Best transform: " << std::endl << (final_transform * camera_transform) << std::endl;
 		pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
 	}
 	
