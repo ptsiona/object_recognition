@@ -149,6 +149,27 @@ int main(int argc, char **argv) {
     std::cout << "Object found! Best transform: " << std::endl << (final_transform * camera_transform) * camera_transform << std::endl;
     pcl::transformPointCloud(*final_cloud, *final_cloud, final_transform);
   }
+  Eigen::Matrix4f desperation = Eigen::Matrix4f::Identity();
+  desperation = (final_transform * camera_transform) * camera_transform;
+  Eigen::Vector4f origin_point(0.0f, 0.0f, 0.0f, 1.0f);
+  pcl::PointCloud<PointType>::Ptr origin(new pcl::PointCloud<PointType>());
+  origin_point = desperation * origin_point;
+  PointType op;
+  op.x = origin_point.x();
+  op.y = origin_point.y();
+  op.z = origin_point.z();
+  op.r = 0;
+  op.g = 255;
+  op.b = 0;
+  std::cout << "Origin point: " << origin_point.transpose() << std::endl;
+  origin->points.push_back(op);
+  std::cout << "op: " << origin->points[0] << std::endl;
+  origin->width = 1;
+  origin->height = 1;
+	
+  pcl::io::savePCDFileASCII("origin.pcd", *origin);
+  pcl::io::savePCDFileASCII("scene.pcd", *scene.getCloudPtr());
+  pcl::io::savePCDFileASCII("result.pcd", *final_cloud);
 	
   // Visualize the final result
   pcl::visualization::PointCloudColorHandlerCustom<PointType> final_cloud_color_handler(final_cloud, 255, 0, 0);
